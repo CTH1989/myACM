@@ -4,89 +4,48 @@ import java.io.InputStreamReader;
 import java.io.StreamTokenizer;
 
 public class Main {
-    private static final int MAXN = 50000;
-    private static int maxRet, minRet;
-    private static Node[] nodes;
+    private static final int MAXN = 50010;
 
-    private static class Node {
-        int min, max;
-        int l, r;
-        int left, right;
-    }
-
-    private static void build(int index, int l, int r) {
-        nodes[index].l = l;
-        nodes[index].r = r;
-        nodes[index].max = Integer.MIN_VALUE;
-        nodes[index].min = Integer.MAX_VALUE;
-        int mid = (l + r) / 2;
-        if (l != r) {
-            nodes[index].left = index * 2;
-            nodes[index].right = index * 2 + 1;
-            build(nodes[index].left, l, mid);
-            build(nodes[index].right, mid + 1, r);
-        }
-    }
-
-    private static void insert(int node, int index, int v) {
-        if (nodes[node].l == index && nodes[node].r == index) {
-            nodes[node].max = v;
-            nodes[node].min = v;
-            return;
-        }
-        nodes[node].max = Math.max(nodes[node].max, v);
-        nodes[node].min = Math.min(nodes[node].min, v);
-        int mid = (nodes[node].l + nodes[node].r) / 2;
-        if (index <= mid)
-            insert(nodes[node].left, index, v);
-        else
-            insert(nodes[node].right, index, v);
-    }
-
-    private static void query(int node, int l, int r) {
-        if (nodes[node].min >= minRet && nodes[node].max <= maxRet)
-            return;
-        int mid = (nodes[node].l + nodes[node].r) / 2;
-        if (nodes[node].l == l && nodes[node].r == r) {
-            minRet = Math.min(nodes[node].min, minRet);
-            maxRet = Math.max(nodes[node].max, maxRet);
-        } else if (r <= mid) {
-            query(nodes[node].left, l, r);
-        } else if (l > mid) {
-            query(nodes[node].right, l, r);
-        } else {
-            query(nodes[node].left, l, mid);
-            query(nodes[node].right, mid + 1, r);
-        }
-    }
-
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] arg) throws IOException {
         StreamTokenizer st = new StreamTokenizer(new BufferedReader(
                 new InputStreamReader(System.in)));
         int N, Q;
-        nodes = new Node[MAXN * 3 + 500];
-        for (int i = 0; i < MAXN * 3; i++)
-            nodes[i] = new Node();
+        int[][] dpMax = new int[MAXN][20];
+        int[][] dpMin = new int[MAXN][20];
+        int[] num = new int[MAXN];
         while (st.nextToken() != StreamTokenizer.TT_EOF) {
             N = (int) st.nval;
             st.nextToken();
             Q = (int) st.nval;
-            build(1, 1, N);
-            for (int i = 0; i < N; i++) {
+            for (int i = 1; i <= N; i++) {
                 st.nextToken();
-                int np = (int) st.nval;
-                insert(1, i + 1, np);
+                num[i] = (int) st.nval;
             }
+            for (int i = 1; i <= N; i++) {
+                dpMax[i][0] = num[i];
+                dpMin[i][0] = num[i];
+            }
+
+            for (int j = 1; j < Math.log(1.0 * N) / Math.log(2.0); j++)
+                for (int i = 1; i + (1 << j) - 1 <= N; i++)
+                    dpMax[i][j] = Math.max(dpMax[i][j - 1], dpMax[i
+                            + (1 << (j - 1))][j - 1]);
+
+            for (int j = 1; j < Math.log(1.0 * N) / Math.log(2.0); j++)
+                for (int i = 1; i + (1 << j) - 1 <= N; i++)
+                    dpMin[i][j] = Math.min(dpMin[i][j - 1], dpMin[i
+                            + (1 << (j - 1))][j - 1]);
+
+            int x, y;
             for (int i = 0; i < Q; i++) {
-                int pp, np;
                 st.nextToken();
-                pp = (int) st.nval;
+                x = (int) st.nval;
                 st.nextToken();
-                np = (int) st.nval;
-                maxRet = Integer.MIN_VALUE;
-                minRet = Integer.MAX_VALUE;
-                query(1, pp, np);
-                System.out.println(maxRet - minRet);
+                y = (int) st.nval;
+                int k = (int) (Math.log(1.0 * (y - x + 1)) / Math.log(2.0));
+                int max = Math.max(dpMax[x][k], dpMax[y - (1 << k) + 1][k]);
+                int min = Math.min(dpMin[x][k], dpMin[y - (1 << k) + 1][k]);
+                System.out.println(max - min);
             }
         }
     }
